@@ -1,0 +1,32 @@
+server:
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: customer-service
+  config:
+    import: optional:configtree:/run/secrets/
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+  datasource:
+    password: ${db_password}
+    username:
+    url:
+
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone:
+
+        
