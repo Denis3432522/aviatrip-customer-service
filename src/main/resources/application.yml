@@ -14,6 +14,9 @@ spring:
     username:
     url:
 
+  kafka:
+    bootstrap-servers:
+
   jpa:
     show-sql: true
     hibernate:
@@ -29,4 +32,11 @@ eureka:
     service-url:
       defaultZone:
 
-        
+kafka:
+  customer-user:
+    enabled: true
+    main-groupId: main-customer-user-group
+    main-topic: main-customer-user
+    retry-groupId: retry-customer-user-group
+    retry-topic: retry-customer-user
+    dlq-topic: dlq-customer-user
