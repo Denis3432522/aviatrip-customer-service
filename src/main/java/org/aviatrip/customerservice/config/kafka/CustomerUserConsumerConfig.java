@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.aviatrip.customerservice.kafka.event.CustomerUserEvent;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -28,7 +27,7 @@ import java.util.Map;
 @Slf4j
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "kafka.customer-user.enabled", matchIfMissing = true)
-public class UserCreatedKafkaConfig {
+public class CustomerUserConsumerConfig {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final DLQDestinationResolverFactory destinationResolverFactory;
@@ -42,26 +41,22 @@ public class UserCreatedKafkaConfig {
     @Value("${kafka.customer-user.dlq-topic}")
     private String dlqTopic;
 
-
     @Bean
-    public ConsumerFactory<String, CustomerUserEvent> customerUserConsumerFactory() {
+    public ConsumerFactory<String, String> defaultConsumerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
-        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true);
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        props.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, StringDeserializer.class);
+        props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
 
-        ErrorHandlingDeserializer<CustomerUserEvent> errorHandlingDeserializer
-                = new ErrorHandlingDeserializer<>(new JsonDeserializer<>(CustomerUserEvent.class));
-
-        return new DefaultKafkaConsumerFactory<>(
-                props,
-                new StringDeserializer(),
-                errorHandlingDeserializer
-        );
+        return new DefaultKafkaConsumerFactory<>(props);
     }
 
     @Bean("mainCustomerUserConsumerContainerFactory")
-    public ConcurrentKafkaListenerContainerFactory<String, CustomerUserEvent> mainCustomerUserConsumerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, CustomerUserEvent> concurrentKafkaListenerContainerFactory
+    public ConcurrentKafkaListenerContainerFactory<String, String> mainCustomerUserConsumerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, String> concurrentKafkaListenerContainerFactory
                 = new ConcurrentKafkaListenerContainerFactory<>();
 
         var recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate,
@@ -69,16 +64,16 @@ public class UserCreatedKafkaConfig {
 
         var errorHandler = new DefaultErrorHandler(recoverer, new FixedBackOff(0L, 1L));
 
-        concurrentKafkaListenerContainerFactory.setConsumerFactory(customerUserConsumerFactory());
+        concurrentKafkaListenerContainerFactory.setConsumerFactory(defaultConsumerFactory());
         concurrentKafkaListenerContainerFactory.setCommonErrorHandler(errorHandler);
         return concurrentKafkaListenerContainerFactory;
     }
 
     @Bean("retryCustomerUserConsumerContainerFactory")
-    public ConcurrentKafkaListenerContainerFactory<String, CustomerUserEvent> retryCustomerUserConsumerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, CustomerUserEvent> containerFactory
+    public ConcurrentKafkaListenerContainerFactory<String, String> retryCustomerUserConsumerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, String> containerFactory
                 = new ConcurrentKafkaListenerContainerFactory<>();
-        containerFactory.setConsumerFactory(customerUserConsumerFactory());
+        containerFactory.setConsumerFactory(defaultConsumerFactory());
 
         var recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate,
                 destinationResolverFactory.createRetryDestinationResolver(dlqTopic));

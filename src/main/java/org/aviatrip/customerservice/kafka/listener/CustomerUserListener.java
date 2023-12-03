@@ -21,7 +21,9 @@ public class CustomerUserListener {
 
     @KafkaListener(topics = "${kafka.customer-user.main-topic}",
             groupId = "${kafka.customer-user.main-groupId}",
-            containerFactory = "mainCustomerUserConsumerContainerFactory")
+            containerFactory = "mainCustomerUserConsumerContainerFactory",
+            properties = "spring.json.value.default.type=org.aviatrip.customerservice.kafka.event.CustomerUserEvent"
+    )
     public void handleMainCustomerUserEvent(@Payload @Valid CustomerUserEvent event) {
 
         log.debug(">>> Customer creation started: {}", event);
@@ -31,7 +33,9 @@ public class CustomerUserListener {
 
     @KafkaListener(topics = "${kafka.customer-user.retry-topic}",
             groupId = "${kafka.customer-user.retry-groupId}",
-            containerFactory = "retryCustomerUserConsumerContainerFactory")
+            containerFactory = "retryCustomerUserConsumerContainerFactory",
+            properties = "spring.json.value.default.type=org.aviatrip.customerservice.kafka.event.CustomerUserEvent"
+    )
     public void handleRetryCustomerUserEvent(@Payload @Valid CustomerUserEvent event) {
 
         log.debug(">>> RETRY Customer creation started: {}", event);

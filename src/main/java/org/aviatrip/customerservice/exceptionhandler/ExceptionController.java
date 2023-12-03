@@ -1,10 +1,13 @@
 package org.aviatrip.customerservice.exceptionhandler;
 
 
+import lombok.extern.slf4j.Slf4j;
 import org.aviatrip.customerservice.dto.response.error.ErrorResponse;
 import org.aviatrip.customerservice.dto.response.error.ErrorsResponse;
+import org.aviatrip.customerservice.dto.response.error.InternalErrorResponse;
 import org.aviatrip.customerservice.exception.BadRequestException;
 import org.aviatrip.customerservice.exception.InternalServerErrorException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -15,6 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class ExceptionController {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -30,33 +34,40 @@ public class ExceptionController {
                 .details("invalid field values")
                 .build();
 
+        log.debug("Returning HTTP 400 Bad Request: {}", errorsResponse);
+
         return ResponseEntity.badRequest().body(errorsResponse);
     }
 
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ErrorResponse> handleBadRequestException(BadRequestException ex) {
+        ErrorResponse response = ex.getErrorResponse().orElse(
+                ErrorResponse.builder()
+                        .errorMessage("bad request")
+                        .details("please try later")
+                        .build()
+        );
+        log.debug("Returning HTTP 400 Bad Request: {}", response);
+
         return ResponseEntity.badRequest()
-                .body(ex.getErrorResponse().orElse(
-                    ErrorResponse.builder()
-                            .errorMessage("bad request")
-                            .build()
-                ));
+                .body(response);
     }
 
     @ExceptionHandler(InternalServerErrorException.class)
     public ResponseEntity<ErrorResponse> handleInternalServerErrorException(InternalServerErrorException ex) {
+        ErrorResponse response = new InternalErrorResponse();
+
+        log.error("{} thrown: {}", ex.getClass().getSimpleName(), response);
+
         return ResponseEntity.internalServerError()
-                .body(ex.getErrorResponse().orElse(
-                        ErrorResponse.builder()
-                                .errorMessage("internal server error occurred")
-                                .details("please try later")
-                                .build()
-                ));
+                .body(response);
     }
 
-//    @ExceptionHandler(AuthenticationException.class)
-//    public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex) {
-//        System.out.println(ex.getMessage());
-//        return ResponseEntity.badRequest().body(new ErrorResponse("incorrect username or password"));
-//    }
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        log.error("{} thrown: {}", ex.getClass().getSimpleName(), ex.getMostSpecificCause().getMessage());
+
+        return ResponseEntity.internalServerError()
+                .body(new InternalErrorResponse());
+    }
 }

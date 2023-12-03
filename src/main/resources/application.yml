@@ -15,6 +15,8 @@ spring:
     url:
 
   kafka:
+    #consumer:
+
     bootstrap-servers:
 
   jpa:

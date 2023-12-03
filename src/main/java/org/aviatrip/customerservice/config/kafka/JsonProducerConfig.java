@@ -28,7 +28,8 @@ public class JsonProducerConfig {
         return new DefaultKafkaProducerFactory<>(
                 Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer,
                         ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
-                        ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class)
+                        ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class,
+                        "spring.json.add.type.headers", "Boolean.FALSE")
 
         );
     }
