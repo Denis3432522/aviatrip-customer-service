@@ -4,11 +4,13 @@ import org.aviatrip.customerservice.dto.response.error.ErrorResponse;
 
 import java.util.Optional;
 
-public class BadRequestException extends RuntimeException implements DetailedException {
+public class ResourceNotFoundException extends RuntimeException implements DetailedException {
 
-    private final ErrorResponse errorResponse;
+    private ErrorResponse errorResponse;
 
-    public BadRequestException(ErrorResponse errorResponse) {
+    public ResourceNotFoundException() {}
+
+    public ResourceNotFoundException(ErrorResponse errorResponse) {
         this.errorResponse = errorResponse;
     }
 

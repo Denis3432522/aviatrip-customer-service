@@ -1,13 +1,13 @@
 package org.aviatrip.customerservice.dto.response.error;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
+import lombok.*;
 
-@Builder
 @Getter
 @AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
+@Builder
+@ToString
 public class ErrorResponse {
 
     @JsonProperty("error_message")
@@ -15,4 +15,8 @@ public class ErrorResponse {
 
     @JsonProperty("details")
     private String details;
+
+    public static ErrorResponse of(String errorMessage) {
+        return new ErrorResponse(errorMessage, null);
+    }
 }
