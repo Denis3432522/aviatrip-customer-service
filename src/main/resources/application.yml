@@ -14,9 +14,8 @@ spring:
     username:
     url:
 
-  kafka:
-    #consumer:
 
+  kafka:
     bootstrap-servers:
 
   jpa:
@@ -28,6 +27,10 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+  cloud:
+    openfeign:
+      okhttp:
+        enabled: true
 
 eureka:
   client:
@@ -42,3 +45,8 @@ kafka:
     retry-groupId: retry-customer-user-group
     retry-topic: retry-customer-user
     dlq-topic: dlq-customer-user
+
+ticket:
+  minimal-flight-seat-reservation-duration-in-seconds: 600
+  seconds-until-flight-departure-reservation-available: 4200
+  seconds_until_flight_departure_reservation_available_when_pay_later_option_enabled: 7200

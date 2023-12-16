@@ -1,7 +1,8 @@
 package org.aviatrip.customerservice.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
+import lombok.*;
+import org.springframework.data.domain.Persistable;
 
 import java.time.ZonedDateTime;
 import java.util.UUID;
@@ -9,7 +10,11 @@ import java.util.UUID;
 @Entity
 @Table(name = "flight_seat_reservations")
 @Getter
-public class FlightSeatReservation {
+@AllArgsConstructor
+@NoArgsConstructor
+@ToString
+@Builder
+public class FlightSeatReservation implements Persistable<UUID> {
 
     @Column(name = "flight_seat_id")
     @Id
@@ -18,15 +23,20 @@ public class FlightSeatReservation {
     @Column(name = "reserved_until")
     private ZonedDateTime reservedUntil;
 
+    @Version
+    private int version;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
-    protected FlightSeatReservation() {}
+    @Override
+    public UUID getId() {
+        return flightSeatId;
+    }
 
-    public FlightSeatReservation(UUID flightSeatId, ZonedDateTime reservedUntil, Customer customer) {
-        this.flightSeatId = flightSeatId;
-        this.reservedUntil = reservedUntil;
-        this.customer = customer;
+    @Override
+    public boolean isNew() {
+        return version == 0;
     }
 }

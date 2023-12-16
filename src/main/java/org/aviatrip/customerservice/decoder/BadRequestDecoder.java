@@ -18,10 +18,7 @@ public class BadRequestDecoder implements ErrorHandler {
         ObjectMapper mapper = new ObjectMapper();
         try {
             return new BadRequestException(mapper.readValue(inputStream, ErrorResponse.class));
-        } catch (IOException ex) {
-            System.out.printf(ex.getMessage());
-            ex.printStackTrace();
-        }
+        } catch (IOException ex) {}
 
         ErrorsResponse errorsResponse;
 

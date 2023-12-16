@@ -18,7 +18,8 @@ public class FeignExceptionController {
     @ExceptionHandler(FeignException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleDataIntegrityViolationException(FeignException ex) {
-        log.error(LoggerMessagePreparer.prepareErrorMessage(ex, HttpStatus.valueOf(ex.status())));
+        int statusCode = ex.status() == -1 ? 500 : ex.status();
+        log.error(LoggerMessagePreparer.prepareErrorMessage(ex, HttpStatus.valueOf(statusCode)));
 
         return InternalErrorResponse.DEFAULT;
     }
