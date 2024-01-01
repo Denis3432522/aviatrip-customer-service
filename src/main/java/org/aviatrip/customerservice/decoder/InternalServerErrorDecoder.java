@@ -16,7 +16,7 @@ public class InternalServerErrorDecoder implements ErrorHandler {
             ErrorResponse response = new ObjectMapper().readValue(inputStream, ErrorResponse.class);
             return new InternalServerErrorException(response);
         } catch (IOException ex) {
-            return new InternalServerErrorException(null);
+            return new InternalServerErrorException();
         }
     }
 
