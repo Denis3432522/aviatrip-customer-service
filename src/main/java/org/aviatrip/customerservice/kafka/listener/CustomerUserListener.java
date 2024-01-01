@@ -31,8 +31,8 @@ public class CustomerUserListener {
         log.debug("<<< Customer created: {}", event);
     }
 
-    @KafkaListener(topics = "retry-" + "${spring.kafka.custom.consumer.customer-user.topic}",
-            groupId = "retry-" + "${spring.kafka.custom.consumer.customer-user.groupId}",
+    @KafkaListener(topics = "#{'${spring.kafka.custom.retry-topic-prefix}' + '${spring.kafka.custom.consumer.customer-user.topic}'}",
+            groupId = "#{'${spring.kafka.custom.retry-groupId-prefix}' + '${spring.kafka.custom.consumer.customer-user.groupId}'}",
             containerFactory = "retryListenerContainerFactory",
             properties = "spring.json.value.default.type=org.aviatrip.customerservice.kafka.event.CustomerUserEvent"
     )
