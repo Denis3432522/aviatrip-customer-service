@@ -1,6 +1,7 @@
 package org.aviatrip.customerservice.service;
 
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.aviatrip.customerservice.config.web.ReservationProperties;
 import org.aviatrip.customerservice.dto.response.FlightSeatReservationView;
 import org.aviatrip.customerservice.dto.response.ReservationView;
@@ -22,18 +23,12 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-//@RequiredArgsConstructor
+@RequiredArgsConstructor
 public class ReservationService {
 
     private final ReservationProperties reservationProps;
     private final FlightSeatReservationRepository reservationRepository;
     private final CustomerRepository customerRepository;
-
-    public ReservationService(ReservationProperties reservationProps, FlightSeatReservationRepository reservationRepository, CustomerRepository customerRepository) {
-        this.reservationProps = reservationProps;
-        this.reservationRepository = reservationRepository;
-        this.customerRepository = customerRepository;
-    }
 
     public ZonedDateTime calcTimestampReservationActiveUntil(FlightSeatReservationView reservationView, boolean payLater) {
         ZonedDateTime currentDateTime = ZonedDateTime.now(ZoneId.of("UTC"));
@@ -60,11 +55,13 @@ public class ReservationService {
     }
 
     @Transactional
-    public FlightSeatReservation createReservation(UUID flightSeatId, ZonedDateTime reservedUntil, UUID customerId) {
+    public FlightSeatReservation createReservation(UUID flightSeatId, ZonedDateTime reservedUntil, UUID customerId, UUID flightId) {
         return reservationRepository.save(FlightSeatReservation.builder()
                 .flightSeatId(flightSeatId)
                 .reservedUntil(reservedUntil)
                 .customer(customerRepository.getReferenceById(customerId))
+                .flightId(flightId)
+                .isNew(true)
                 .build());
     }
 
@@ -72,15 +69,29 @@ public class ReservationService {
         return reservationRepository.getReservationViewsByCustomerId(customerId, pageRequest);
     }
 
-    public ReservationView getReservationView(UUID reservationId, UUID customerId) {
-        return reservationRepository.getReservationViewByIdAndCustomerId(reservationId, customerId)
+    public <R> R getReservationView(UUID reservationId, UUID customerId, Class<R> classType) {
+        return reservationRepository.getReservationViewByIdAndCustomerId(reservationId, customerId, classType)
                 .orElseThrow(() -> new ResourceNotFoundException(ResourceNotFoundResponse
                         .of("Reservation with ID " + reservationId))
                 );
     }
 
+    public void assertReservationNotExpired(FlightSeatReservation reservation) {
+        ZonedDateTime currentDateTime = ZonedDateTime.now(ZoneId.of("UTC"));
+
+        if(reservation.getReservedUntil().isBefore(currentDateTime))
+            throw new BadRequestException(ErrorResponse
+                    .of("Reservation with ID " + reservation.getFlightSeatId() + " expired")
+            );
+    }
+
     @Transactional
     public void deleteReservation(UUID flightSeatId) {
         reservationRepository.deleteReservationById(flightSeatId);
+    }
+
+    @Transactional
+    public boolean deleteExistentReservation(UUID flightSeatId) {
+        return reservationRepository.deleteReservationById(flightSeatId) == 1;
     }
 }

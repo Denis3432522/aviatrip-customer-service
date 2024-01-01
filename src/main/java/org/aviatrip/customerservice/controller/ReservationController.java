@@ -5,6 +5,7 @@ import org.aviatrip.customerservice.client.FlightSeatClient;
 import org.aviatrip.customerservice.dto.response.FlightSeatReservationView;
 import org.aviatrip.customerservice.dto.response.ReservationView;
 import org.aviatrip.customerservice.entity.FlightSeatReservation;
+import org.aviatrip.customerservice.service.FlightSeatValidator;
 import org.aviatrip.customerservice.service.ReservationService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,14 +23,18 @@ public class ReservationController {
 
     private final ReservationService reservationService;
     private final FlightSeatClient flightSeatClient;
+    private final FlightSeatValidator flightSeatValidator;
 
     @PostMapping("/{flightSeatId}")
-    public Map<String, UUID> reserveTicket(@PathVariable UUID flightSeatId, @RequestParam(defaultValue = "false") boolean payLater,
+    public Map<String, UUID> reserveTicket(@PathVariable UUID flightSeatId, @RequestParam(defaultValue = "false", name = "pay-later") boolean payLater,
                                            @RequestHeader("Subject") UUID userId) {
 
-        FlightSeatReservationView reservationView = flightSeatClient.getFlightSeatReservationData(flightSeatId);
+        FlightSeatReservationView reservationView = flightSeatClient.getFlightSeatReservationView(flightSeatId);
+        flightSeatValidator.validate(reservationView);
+
         ZonedDateTime reservedUntil = reservationService.calcTimestampReservationActiveUntil(reservationView, payLater);
-        FlightSeatReservation reservation = reservationService.createReservation(flightSeatId, reservedUntil, userId);
+        FlightSeatReservation reservation = reservationService
+                .createReservation(flightSeatId, reservedUntil, userId, reservationView.getFlightId());
 
         try {
             flightSeatClient.reserveFlightSeat(flightSeatId);
@@ -48,8 +53,8 @@ public class ReservationController {
     }
 
     @GetMapping("/{reservationId}")
-    public ReservationView getTickets(@PathVariable UUID reservationId,
+    public ReservationView getReservation(@PathVariable UUID reservationId,
                                             @RequestHeader("Subject") UUID userId) {
-        return reservationService.getReservationView(reservationId, userId);
+        return reservationService.getReservationView(reservationId, userId, ReservationView.class);
     }
 }
