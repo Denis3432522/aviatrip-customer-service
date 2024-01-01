@@ -1,7 +1,10 @@
 package org.aviatrip.customerservice.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.aviatrip.customerservice.enumeration.PaymentSystem;
 import org.hibernate.annotations.Immutable;
 
@@ -11,6 +14,9 @@ import java.util.UUID;
 @Table(name = "ticket_payment_details")
 @Immutable
 @Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class CustomerTicketPaymentDetails {
 
     @Column(name = "ticket_payment_details_id")
@@ -31,13 +37,4 @@ public class CustomerTicketPaymentDetails {
     @JoinColumn(name = "ticker_id", nullable = false, unique = true)
     @MapsId
     private CustomerTicket ticket;
-
-    protected CustomerTicketPaymentDetails() {}
-
-    public CustomerTicketPaymentDetails(PaymentSystem paymentSystem, String paymentSystemIdentifier, int paymentAmount, CustomerTicket ticket) {
-        this.paymentSystem = paymentSystem;
-        this.paymentSystemIdentifier = paymentSystemIdentifier;
-        this.paymentAmount = paymentAmount;
-        this.ticket = ticket;
-    }
 }

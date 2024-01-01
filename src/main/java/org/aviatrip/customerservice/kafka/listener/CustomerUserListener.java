@@ -19,31 +19,31 @@ public class CustomerUserListener {
 
     private final CustomerService customerService;
 
-    @KafkaListener(topics = "${kafka.customer-user.main-topic}",
-            groupId = "${kafka.customer-user.main-groupId}",
-            containerFactory = "mainCustomerUserConsumerContainerFactory",
+    @KafkaListener(topics = "${spring.kafka.custom.consumer.customer-user.topic}",
+            groupId = "${spring.kafka.custom.consumer.customer-user.groupId}",
+            containerFactory = "mainListenerContainerFactory",
             properties = "spring.json.value.default.type=org.aviatrip.customerservice.kafka.event.CustomerUserEvent"
     )
-    public void handleMainCustomerUserEvent(@Payload @Valid CustomerUserEvent event) {
+    public void handleCustomerUserEvent(@Payload @Valid CustomerUserEvent event) {
 
         log.debug(">>> Customer creation started: {}", event);
-        handleCustomerUserEvent(event);
+        dispatchCustomerUserEvent(event);
         log.debug("<<< Customer created: {}", event);
     }
 
-    @KafkaListener(topics = "${kafka.customer-user.retry-topic}",
-            groupId = "${kafka.customer-user.retry-groupId}",
-            containerFactory = "retryCustomerUserConsumerContainerFactory",
+    @KafkaListener(topics = "retry-" + "${spring.kafka.custom.consumer.customer-user.topic}",
+            groupId = "retry-" + "${spring.kafka.custom.consumer.customer-user.groupId}",
+            containerFactory = "retryListenerContainerFactory",
             properties = "spring.json.value.default.type=org.aviatrip.customerservice.kafka.event.CustomerUserEvent"
     )
     public void handleRetryCustomerUserEvent(@Payload @Valid CustomerUserEvent event) {
 
         log.debug(">>> RETRY Customer creation started: {}", event);
-        handleCustomerUserEvent(event);
+        dispatchCustomerUserEvent(event);
         log.debug(">>> RETRY Customer created: {}", event);
     }
 
-    public void handleCustomerUserEvent(CustomerUserEvent event) {
+    public void dispatchCustomerUserEvent(CustomerUserEvent event) {
         CustomerUserEventType type = event.getEventTypeEnum();
         if(CustomerUserEventType.CREATED.equals(type))
             customerService.createCustomer(event.getUserId());

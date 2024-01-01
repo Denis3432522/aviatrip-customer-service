@@ -1,20 +1,22 @@
 package org.aviatrip.customerservice.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.aviatrip.customerservice.enumeration.FlightSeatClass;
+import org.springframework.data.domain.Persistable;
 
 import java.util.UUID;
 
 @Entity
-@Table(name = "customer_ticket")
+@Table(name = "customer_tickets")
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Getter
-public class CustomerTicket {
+public class CustomerTicket implements Persistable<UUID> {
 
     @Column(name = "ticket_id")
     @Id
-    @GeneratedValue
     private UUID id;
 
     @Column(nullable = false)
@@ -27,23 +29,23 @@ public class CustomerTicket {
     @Enumerated(EnumType.STRING)
     private FlightSeatClass seatClass;
 
-    @Column(name = "flight_id")
-    private UUID flightId;
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "flight_id", nullable = false)
+    private FlightInfo flightInfo;
 
     @Setter
     @OneToOne(mappedBy = "ticket", fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
     CustomerTicketPaymentDetails paymentDetails;
 
-    protected CustomerTicket() {}
+    @Transient
+    private boolean isNew;
 
-    public CustomerTicket(String position, boolean isWindowSeat, FlightSeatClass seatClass, UUID flightId, Customer customer) {
-        this.position = position;
-        this.isWindowSeat = isWindowSeat;
-        this.seatClass = seatClass;
-        this.flightId = flightId;
-        this.customer = customer;
-    }}
+    @Override
+    public boolean isNew() {
+        return isNew;
+    }
+}
