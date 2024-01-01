@@ -1,4 +1,6 @@
 server:
+  error:
+    include-stacktrace: never
   servlet:
     context-path: /api
 
@@ -17,6 +19,20 @@ spring:
 
   kafka:
     bootstrap-servers:
+    custom:
+      consumer:
+        customer-user:
+          groupId: customer-user-group
+          topic: customer-user
+      producer:
+        flightseat-reservation-topic: flightseat-reservation
+      retry-topic-prefix: retry-
+      dlq-topic-prefix: dlq-
+      fatal-exceptions:
+        - org.aviatrip.customerservice.exception.FatalKafkaException
+        - org.springframework.kafka.support.serializer.DeserializationException
+        - org.springframework.messaging.handler.annotation.support.MethodArgumentNotValidException
+        - jakarta.validation.ConstraintViolationException
 
   jpa:
     show-sql: true
@@ -37,14 +53,9 @@ eureka:
     service-url:
       defaultZone:
 
-kafka:
-  customer-user:
-    enabled: true
-    main-groupId: main-customer-user-group
-    main-topic: main-customer-user
-    retry-groupId: retry-customer-user-group
-    retry-topic: retry-customer-user
-    dlq-topic: dlq-customer-user
+logging:
+  level:
+    org.apache.kafka: ERROR
 
 ticket:
   minimal-flight-seat-reservation-duration-in-seconds: 600

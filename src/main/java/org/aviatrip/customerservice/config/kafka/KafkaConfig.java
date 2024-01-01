@@ -1,45 +1,38 @@
 package org.aviatrip.customerservice.config.kafka;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
-import org.springframework.kafka.core.ConsumerFactory;
-import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.*;
 import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.util.backoff.ExponentialBackOff;
 import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 @Configuration
-@Slf4j
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "kafka.customer-user.enabled", matchIfMissing = true)
-public class CustomerUserConsumerConfig {
-
-    private final KafkaTemplate<String, Object> kafkaTemplate;
-    private final DLQDestinationResolverFactory destinationResolverFactory;
+public class KafkaConfig {
 
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServer;
-
-    @Value("${kafka.customer-user.retry-topic}")
-    private String retryTopic;
-
-    @Value("${kafka.customer-user.dlq-topic}")
-    private String dlqTopic;
+    private final BiFunction<ConsumerRecord<?,?>, Exception, TopicPartition> mainDestinationResolver;
+    private final BiFunction<ConsumerRecord<?,?>, Exception, TopicPartition> retryDestinationResolver;
 
     @Bean
     public ConsumerFactory<String, String> defaultConsumerFactory() {
@@ -54,29 +47,29 @@ public class CustomerUserConsumerConfig {
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
-    @Bean("mainCustomerUserConsumerContainerFactory")
-    public ConcurrentKafkaListenerContainerFactory<String, String> mainCustomerUserConsumerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, String> concurrentKafkaListenerContainerFactory
+    @Bean("mainListenerContainerFactory")
+    public ConcurrentKafkaListenerContainerFactory<String, String> mainListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, String> containerFactory
                 = new ConcurrentKafkaListenerContainerFactory<>();
 
-        var recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate,
-                destinationResolverFactory.createMainDestinationResolver(retryTopic, dlqTopic));
+        var recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate(),
+                mainDestinationResolver);
 
-        var errorHandler = new DefaultErrorHandler(recoverer, new FixedBackOff(0L, 1L));
+        var errorHandler = new DefaultErrorHandler(recoverer, new FixedBackOff(0L, 0L));
 
-        concurrentKafkaListenerContainerFactory.setConsumerFactory(defaultConsumerFactory());
-        concurrentKafkaListenerContainerFactory.setCommonErrorHandler(errorHandler);
-        return concurrentKafkaListenerContainerFactory;
+        containerFactory.setConsumerFactory(defaultConsumerFactory());
+        containerFactory.setCommonErrorHandler(errorHandler);
+        return containerFactory;
     }
 
-    @Bean("retryCustomerUserConsumerContainerFactory")
-    public ConcurrentKafkaListenerContainerFactory<String, String> retryCustomerUserConsumerContainerFactory() {
+    @Bean("retryListenerContainerFactory")
+    public ConcurrentKafkaListenerContainerFactory<String, String> retryListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, String> containerFactory
                 = new ConcurrentKafkaListenerContainerFactory<>();
         containerFactory.setConsumerFactory(defaultConsumerFactory());
 
-        var recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate,
-                destinationResolverFactory.createRetryDestinationResolver(dlqTopic));
+        var recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate(),
+                retryDestinationResolver);
 
         var backOff = new ExponentialBackOff(1000L, 2D);
         backOff.setMaxElapsedTime(2000L);
@@ -84,5 +77,20 @@ public class CustomerUserConsumerConfig {
         containerFactory.setCommonErrorHandler(errorHandler);
 
         return containerFactory;
+    }
+
+    @Bean
+    public KafkaTemplate<String, Object> kafkaTemplate() {
+        return new KafkaTemplate<>(jsonProducerFactory());
+    }
+
+    @Bean
+    public ProducerFactory<String, Object> jsonProducerFactory() {
+        return new DefaultKafkaProducerFactory<>(
+                Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer,
+                        ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+                        ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class,
+                        "spring.json.add.type.headers", "Boolean.FALSE")
+        );
     }
 }
