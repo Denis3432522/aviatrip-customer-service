@@ -9,6 +9,7 @@ import org.aviatrip.customerservice.exception.BadRequestException;
 import org.aviatrip.customerservice.exception.InternalServerErrorException;
 import org.aviatrip.customerservice.exception.ResourceNotFoundException;
 import org.aviatrip.customerservice.util.LoggerMessagePreparer;
+import org.aviatrip.customerservice.util.StringPrettier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
@@ -30,7 +31,7 @@ public class DefaultExceptionController {
         Map<String, String> errors = new HashMap<>();
 
         for(FieldError e : ex.getFieldErrors()) {
-            errors.put(e.getField(), e.getDefaultMessage());
+            errors.put(StringPrettier.toSnakeCase(e.getField()), e.getDefaultMessage());
         }
 
         ErrorsResponse errorsResponse = ErrorsResponse.builder()

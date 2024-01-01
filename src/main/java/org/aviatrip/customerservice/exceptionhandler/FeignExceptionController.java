@@ -17,7 +17,7 @@ public class FeignExceptionController {
 
     @ExceptionHandler(FeignException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorResponse handleDataIntegrityViolationException(FeignException ex) {
+    public ErrorResponse handleFeignException(FeignException ex) {
         int statusCode = ex.status() == -1 ? 500 : ex.status();
         log.error(LoggerMessagePreparer.prepareErrorMessage(ex, HttpStatus.valueOf(statusCode)));
 
