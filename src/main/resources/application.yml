@@ -27,6 +27,7 @@ spring:
       producer:
         flightseat-reservation-topic: flightseat-reservation
       retry-topic-prefix: retry-
+      retry-groupId-prefix: retry-
       dlq-topic-prefix: dlq-
       fatal-exceptions:
         - org.aviatrip.customerservice.exception.FatalKafkaException
